@@ -1,0 +1,8 @@
+{
+  "name": "kore-zamani",
+  "version": "1.0.0",
+  "description": "Kore Zamanı - Asya Dizi & Film Öneri Uygulaması",
+  "engines": {
+    "node": "18.x"
+  }
+}
