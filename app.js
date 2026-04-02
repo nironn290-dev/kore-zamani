@@ -1,6 +1,6 @@
 const kanalVideolari = {
   "Goblin": "BURAYA_VIDEO_ID",
-  "Penthouse: Açgözlülük ve İntikam": "BURAYA_VIDEO_ID",
+  "Penthouse": "BURAYA_VIDEO_ID",
   "Squid Game": "BURAYA_VIDEO_ID",
   "My Love from the Star": "BURAYA_VIDEO_ID",
   "Crash Landing on You": "BURAYA_VIDEO_ID",
@@ -73,11 +73,11 @@ function badgeLabel(item) {
   const u = item.ulke === 'Japon' ? 'Japon' : item.ulke === 'Cin' ? 'Çin' : 'Kore';
   return u + ' ' + (item.tur === 'film' ? 'Film' : 'Dizi');
 }
-function isSaved(b) { return watchList.some(w => w.baslik === b); }
+function isSaved(orijinal) { return watchList.some(w => w.orijinal === orijinal); }
 
-function getVideoId(baslik) {
+function getVideoId(kisabaslik) {
   for (const [key, val] of Object.entries(kanalVideolari)) {
-    if (baslik.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(baslik.toLowerCase())) {
+    if (kisabaslik.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(kisabaslik.toLowerCase())) {
       return val !== 'BURAYA_VIDEO_ID' ? val : null;
     }
   }
@@ -89,13 +89,14 @@ function renderResults(list, q) {
   let html = `<div class="r-label">"${q}" için ${list.length} öneri</div><div class="result-grid">`;
   list.forEach((item, i) => {
     const sid = 'r' + i;
-    const saved = isSaved(item.baslik);
-    const rating = ratings[item.baslik] || 0;
-    const likeCount = likes[item.baslik] || 0;
-    const liked = localStorage.getItem('kz_liked_' + item.baslik) === '1';
-    const videoId = getVideoId(item.baslik);
+    const key = item.orijinal;
+    const saved = isSaved(key);
+    const rating = ratings[key] || 0;
+    const likeCount = likes[key] || 0;
+    const liked = localStorage.getItem('kz_liked_' + key) === '1';
+    const videoId = getVideoId(item.kisabaslik);
     const starsHtml = [1,2,3,4,5].map(s =>
-      `<span class="star ${rating >= s ? 'lit' : ''}" data-sid="${sid}" data-baslik="${encodeURIComponent(item.baslik)}" data-val="${s}">★</span>`
+      `<span class="star ${rating >= s ? 'lit' : ''}" data-sid="${sid}" data-key="${encodeURIComponent(key)}" data-val="${s}">★</span>`
     ).join('');
     const videoHtml = videoId
       ? `<button class="video-btn" data-sid="${sid}" data-vid="${videoId}"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Kore Zamanı Videosu</button><div id="vid-${sid}"></div>`
@@ -103,27 +104,27 @@ function renderResults(list, q) {
     const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
     html += `<div class="r-card">
       <div class="r-head">
-        <div class="r-title">${item.baslik}</div>
+        <div class="r-title">${item.kisabaslik}</div>
         <span class="r-badge ${badgeClass(item)}">${badgeLabel(item)}</span>
       </div>
-      ${item.orijinal ? `<div class="r-orig">${item.orijinal}</div>` : ''}
+      <div class="r-orig">${item.orijinal}</div>
+      <div class="r-altbaslik">${item.altbaslik}</div>
       <div class="r-meta">${item.yil} · IMDb ${item.imdb}</div>
       <div class="r-desc">${item.ozet}</div>
-      <div class="r-why">${item.neden}</div>
       ${videoHtml}
       <div class="social-row">
-        <button class="like-btn ${liked ? 'liked' : ''}" id="like-${sid}" data-sid="${sid}" data-baslik="${encodeURIComponent(item.baslik)}">
+        <button class="like-btn ${liked ? 'liked' : ''}" id="like-${sid}" data-sid="${sid}" data-key="${encodeURIComponent(key)}">
           <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
           <span id="lc-${sid}">${likeCount}</span>
         </button>
-        <button class="yorum-toggle" data-sid="${sid}" data-baslik="${encodeURIComponent(item.baslik)}">Yorumlar</button>
+        <button class="yorum-toggle" data-sid="${sid}" data-key="${encodeURIComponent(key)}">Yorumlar</button>
       </div>
       <div id="yorumlar-${sid}" style="display:none;">
         <div class="yorum-area">
           <div class="yorumlar" id="ylist-${sid}"></div>
           <div class="yorum-inp-row">
             <input class="yorum-inp" id="yinp-${sid}" placeholder="Yorumunu yaz..." maxlength="200">
-            <button class="yorum-send" data-sid="${sid}" data-baslik="${encodeURIComponent(item.baslik)}">Gönder</button>
+            <button class="yorum-send" data-sid="${sid}" data-key="${encodeURIComponent(key)}">Gönder</button>
           </div>
         </div>
       </div>
@@ -139,107 +140,85 @@ function renderResults(list, q) {
 }
 
 function attachEvents() {
-  // Yıldız
   document.querySelectorAll('.star').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
-      const baslik = decodeURIComponent(this.dataset.baslik);
+      const key = decodeURIComponent(this.dataset.key);
       const val = parseInt(this.dataset.val);
-      ratings[baslik] = val;
+      ratings[key] = val;
       saveStorage();
-      const row = document.getElementById('stars-' + sid);
-      row.querySelectorAll('.star').forEach((s, i) => {
+      document.getElementById('stars-' + sid).querySelectorAll('.star').forEach((s, i) => {
         s.className = 'star' + (i < val ? ' lit' : '');
       });
     });
   });
 
-  // Video
   document.querySelectorAll('.video-btn').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
       const vid = this.dataset.vid;
       const el2 = document.getElementById('vid-' + sid);
-      if (openVideos[sid]) {
-        el2.innerHTML = '';
-        openVideos[sid] = false;
-      } else {
-        el2.innerHTML = `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${vid}" allowfullscreen></iframe></div>`;
-        openVideos[sid] = true;
-      }
+      if (openVideos[sid]) { el2.innerHTML = ''; openVideos[sid] = false; }
+      else { el2.innerHTML = `<div class="video-embed"><iframe src="https://www.youtube.com/embed/${vid}" allowfullscreen></iframe></div>`; openVideos[sid] = true; }
     });
   });
 
-  // Beğeni
   document.querySelectorAll('.like-btn').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
-      const baslik = decodeURIComponent(this.dataset.baslik);
-      const key = 'kz_liked_' + baslik;
-      const liked = localStorage.getItem(key) === '1';
-      if (liked) {
-        localStorage.removeItem(key);
-        likes[baslik] = Math.max(0, (likes[baslik] || 1) - 1);
-      } else {
-        localStorage.setItem(key, '1');
-        likes[baslik] = (likes[baslik] || 0) + 1;
-      }
+      const key = decodeURIComponent(this.dataset.key);
+      const storageKey = 'kz_liked_' + key;
+      const liked = localStorage.getItem(storageKey) === '1';
+      if (liked) { localStorage.removeItem(storageKey); likes[key] = Math.max(0, (likes[key] || 1) - 1); }
+      else { localStorage.setItem(storageKey, '1'); likes[key] = (likes[key] || 0) + 1; }
       saveStorage();
       this.className = 'like-btn' + (!liked ? ' liked' : '');
-      document.getElementById('lc-' + sid).textContent = likes[baslik];
+      document.getElementById('lc-' + sid).textContent = likes[key];
     });
   });
 
-  // Yorumlar toggle
   document.querySelectorAll('.yorum-toggle').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
-      const baslik = decodeURIComponent(this.dataset.baslik);
+      const key = decodeURIComponent(this.dataset.key);
       const el2 = document.getElementById('yorumlar-' + sid);
-      if (el2.style.display === 'none') {
-        el2.style.display = 'block';
-        renderYorumlar(baslik, sid);
-      } else {
-        el2.style.display = 'none';
-      }
+      if (el2.style.display === 'none') { el2.style.display = 'block'; renderYorumlar(key, sid); }
+      else { el2.style.display = 'none'; }
     });
   });
 
-  // Yorum gönder
   document.querySelectorAll('.yorum-send').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
-      const baslik = decodeURIComponent(this.dataset.baslik);
+      const key = decodeURIComponent(this.dataset.key);
       const inp = document.getElementById('yinp-' + sid);
       const text = inp.value.trim();
       if (!text) return;
-      if (!yorumlar[baslik]) yorumlar[baslik] = [];
-      const nick = 'Takipçi ' + Math.floor(Math.random() * 999 + 1);
-      yorumlar[baslik].push({nick, text});
+      if (!yorumlar[key]) yorumlar[key] = [];
+      yorumlar[key].push({nick: 'Takipçi ' + Math.floor(Math.random()*999+1), text});
       saveStorage();
       inp.value = '';
-      renderYorumlar(baslik, sid);
+      renderYorumlar(key, sid);
     });
   });
 
-  // Listeye ekle
   document.querySelectorAll('.save-btn').forEach(el => {
     el.addEventListener('click', function() {
       const sid = this.dataset.sid;
       const item = JSON.parse(this.dataset.item.replace(/&quot;/g, '"'));
-      const idx = watchList.findIndex(w => w.baslik === item.baslik);
+      const idx = watchList.findIndex(w => w.orijinal === item.orijinal);
       if (idx >= 0) watchList.splice(idx, 1);
       else watchList.push(item);
       saveStorage();
-      const saved = isSaved(item.baslik);
+      const saved = isSaved(item.orijinal);
       this.textContent = saved ? '♥ Listede' : '+ Listeye Ekle';
       this.className = 'save-btn' + (saved ? ' saved' : '');
     });
   });
 }
 
-function renderYorumlar(baslik, sid) {
-  const list = yorumlar[baslik] || [];
+function renderYorumlar(key, sid) {
+  const list = yorumlar[key] || [];
   const el = document.getElementById('ylist-' + sid);
   if (!list.length) { el.innerHTML = '<div style="font-size:11px;color:var(--txt3);padding:4px;">Henüz yorum yok. İlk yorumu yaz!</div>'; return; }
   el.innerHTML = list.map(y => `<div class="yorum-item"><div class="yorum-nick">${y.nick}</div><div class="yorum-text">${y.text}</div></div>`).join('');
@@ -253,11 +232,12 @@ function renderListe() {
   }
   let html = `<div class="r-label" style="margin-bottom:10px;">${watchList.length} içerik kaydedildi</div>`;
   watchList.forEach((item, i) => {
-    const r = ratings[item.baslik] || 0;
+    const key = item.orijinal;
+    const r = ratings[key] || 0;
     html += `<div class="l-card">
       <div class="l-icon"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
       <div class="l-info">
-        <div class="l-title">${item.baslik}</div>
+        <div class="l-title">${item.kisabaslik}</div>
         <div class="l-meta">${item.yil} · IMDb ${item.imdb} ${r ? '<span class="l-stars">' + '★'.repeat(r) + '</span>' : ''}</div>
       </div>
       <span class="r-badge ${badgeClass(item)}" style="flex-shrink:0;">${badgeLabel(item)}</span>
@@ -274,7 +254,11 @@ function renderListe() {
   });
 }
 
-// Nav butonları
+// CSS for altbaslik - inject dynamically
+const style = document.createElement('style');
+style.textContent = `.r-altbaslik{font-size:15px;font-weight:600;color:#fff;margin-bottom:6px;line-height:1.4;}`;
+document.head.appendChild(style);
+
 document.querySelectorAll('.nav-btn').forEach((btn, i) => {
   btn.addEventListener('click', function() { goTab(i === 0 ? 'oneri' : 'liste', this); });
 });
