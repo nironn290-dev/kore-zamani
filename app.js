@@ -94,7 +94,7 @@ function renderResults(list, q) {
     const rating = ratings[key] || 0;
     const likeCount = likes[key] || 0;
     const liked = localStorage.getItem('kz_liked_' + key) === '1';
-    const videoId = getVideoId(item.kisabaslik);
+    const videoId = getVideoId(item.baslik);
     const starsHtml = [1,2,3,4,5].map(s =>
       `<span class="star ${rating >= s ? 'lit' : ''}" data-sid="${sid}" data-key="${encodeURIComponent(key)}" data-val="${s}">★</span>`
     ).join('');
@@ -104,7 +104,7 @@ function renderResults(list, q) {
     const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
     html += `<div class="r-card">
       <div class="r-head">
-        <div class="r-title">${item.kisabaslik}</div>
+        <div class="r-title">${item.baslik}</div>
         <span class="r-badge ${badgeClass(item)}">${badgeLabel(item)}</span>
       </div>
       <div class="r-orig">${item.orijinal}</div>
@@ -237,7 +237,7 @@ function renderListe() {
     html += `<div class="l-card">
       <div class="l-icon"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
       <div class="l-info">
-        <div class="l-title">${item.kisabaslik}</div>
+        <div class="l-title">${item.baslik}</div>
         <div class="l-meta">${item.yil} · IMDb ${item.imdb} ${r ? '<span class="l-stars">' + '★'.repeat(r) + '</span>' : ''}</div>
       </div>
       <span class="r-badge ${badgeClass(item)}" style="flex-shrink:0;">${badgeLabel(item)}</span>
